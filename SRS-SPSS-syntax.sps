@@ -1,21 +1,34 @@
-* syntax written by Phil Gorrindo (pgorrindo.github@gorrindo.com)
-* last updated on Sept 12, 2012.
-* https://github.com/pgorrindo/SRS-SPSS.git
+* syntax written by Phillip Gorrindo (pgorrindo.github@gorrindo.com)
+* last updated on November 25, 2012
+* Git repository at https://github.com/pgorrindo/SRS-SPSS.git
+* Some notes on the following code:
+*    - there are some required variables that this code expects (ex: sex, study_group, etc) which your database may not have; 
+*        consider this code as the starting point that you can build on and will, most likely, need to modify to work for your particular dataset
+*    - this code allows for a manually (i.e., using the SRS auto-score sheets) coded score, and will calculate a score based on individual items, 
+*        and then check the two against each other
+*    - use this code at your own risk... I can't guarantee that I'll be able to help you troubleshoot if a problem comes up
+*    - if you find an error, please let me know
+*    - a version of this code has been used in analysis of data that has been published in peer-reviewed reports.
 
 
-VARIABLE LABELS srs_t_total "SRS T score (Evon) - total".
+
+
+* this is the primary variable from REDCap's output for the manually scored SRS; here we apply a better variable label.
+VARIABLE LABELS srs_t_total "SRS T score (manual) - total".
+
 
 * REDCap's output of the srs_t_total variable is by default a string and nominal; here we make a new variable that is numeric. 
-RECODE srs_t_total (CONVERT) INTO srs_t_tot_evon.
-FORMATS srs_t_tot_evon (F5.0).
-VARIABLE LEVEL  srs_t_tot_evon (Scale).
-VARIABLE LABELS srs_t_tot_evon "SRS T score (Evon) - total".
+RECODE srs_t_total (CONVERT) INTO srs_t_total_manual.
+FORMATS srs_t_total_manual (F5.0).
+VARIABLE LEVEL  srs_t_total_manual (Scale).
+VARIABLE LABELS srs_t_total_manual "SRS T score (manual) - total".
 
 
-
-* recode all variables so that what the parent circled (i.e., what is in redcap and gets exported).
+* recode all variables so that what the parent circled (i.e., what is in REDCap and gets exported).
 * is now re-coded as the actual score used to calculate raw scores (i.e., the number that is circled on the carbon copy scoresheet).
 * into a corresponding variable with an "a" appended to the variable name, thus maintaining the original raw scores in the original variables.
+* note: the variable names are numbered in sequence with how the items are presented on the 2005 WPS SRS AutoScore form.
+* for example, srs_q_1 corresponds to "Seems much more fidgety in social situations than when alone". 
 RECODE srs_q_1 (1=0) (2=1) (3=2) (4=3) INTO srs_q_1a.
 RECODE srs_q_2 (1=0) (2=1) (3=2) (4=3) INTO srs_q_2a.
 RECODE srs_q_3 (1=3) (2=2) (3=1) (4=0) INTO srs_q_3a.
@@ -83,6 +96,7 @@ RECODE srs_q_64 (1=0) (2=1) (3=2) (4=3) INTO srs_q_64a.
 RECODE srs_q_65 (1=0) (2=1) (3=2) (4=3) INTO srs_q_65a.
 
 
+* calculate how many items are missing from the SRS.
 COMPUTE  num_missing_srs = 65-(NVALID(srs_q_1a, srs_q_2a, srs_q_3a, srs_q_4a, srs_q_5a, srs_q_6a, srs_q_7a, srs_q_8a, srs_q_9a, srs_q_10a,
  srs_q_11a, srs_q_12a, srs_q_13a, srs_q_14a, srs_q_15a, srs_q_16a, srs_q_17a, srs_q_18a, srs_q_19a, srs_q_20a,
  srs_q_21a, srs_q_22a, srs_q_23a, srs_q_24a, srs_q_25a, srs_q_26a, srs_q_27a, srs_q_28a, srs_q_29a, srs_q_30a,
@@ -93,6 +107,8 @@ COMPUTE  num_missing_srs = 65-(NVALID(srs_q_1a, srs_q_2a, srs_q_3a, srs_q_4a, sr
 VARIABLE LABELS num_missing_srs "number of missing values on SRS".
 FORMATS num_missing_srs (F4.0).
 
+
+* calculate the raw sum of the individual items - total score.
 COMPUTE calc_srs_raw_tot_indivs = sum(srs_q_1a, srs_q_2a, srs_q_3a, srs_q_4a, srs_q_5a, srs_q_6a, srs_q_7a, srs_q_8a, srs_q_9a, srs_q_10a,
  srs_q_11a, srs_q_12a, srs_q_13a, srs_q_14a, srs_q_15a, srs_q_16a, srs_q_17a, srs_q_18a, srs_q_19a, srs_q_20a,
  srs_q_21a, srs_q_22a, srs_q_23a, srs_q_24a, srs_q_25a, srs_q_26a, srs_q_27a, srs_q_28a, srs_q_29a, srs_q_30a,
@@ -103,46 +119,66 @@ COMPUTE calc_srs_raw_tot_indivs = sum(srs_q_1a, srs_q_2a, srs_q_3a, srs_q_4a, sr
 VARIABLE LABELS calc_srs_raw_tot_indivs "SRS raw (calculated) - total (indiv items)".
 FORMATS calc_srs_raw_tot_indivs (F4.0).
 
+
+* calculate the raw sum of the individual items - awareness score.
 COMPUTE calc_srs_raw_aware = sum(srs_q_2a, srs_q_7a, srs_q_25a, srs_q_32a, srs_q_45a, srs_q_52a, srs_q_54a, srs_q_56a).
 VARIABLE LABELS calc_srs_raw_aware "SRS raw (calculated) - awareness".
 FORMATS calc_srs_raw_aware (F4.0).
 
+
+* calculate the raw sum of the individual items - cognition subscale score.
 COMPUTE calc_srs_raw_cogtn = sum(srs_q_5a, srs_q_10a, srs_q_15a, srs_q_17a, srs_q_30a, srs_q_40a, srs_q_42a, srs_q_44a, srs_q_48a, srs_q_58a, srs_q_59a, srs_q_62a).
 VARIABLE LABELS calc_srs_raw_cogtn "SRS raw (calculated) - cognition".
 FORMATS calc_srs_raw_cogtn (F4.0).
 
+
+* calculate the raw sum of the individual items - communication subscale score.
 COMPUTE calc_srs_raw_comm = sum(srs_q_12a, srs_q_13a, srs_q_16a, srs_q_18a, srs_q_19a, srs_q_21a, srs_q_22a, srs_q_26a, 
 srs_q_33a, srs_q_35a, srs_q_36a, srs_q_37a, srs_q_38a, srs_q_41a, srs_q_46a, srs_q_47a, srs_q_51a, srs_q_53a, srs_q_55a, srs_q_57a, srs_q_60a, srs_q_61a).
 VARIABLE LABELS calc_srs_raw_comm "SRS raw (calculated) - communication".
 FORMATS calc_srs_raw_comm (F4.0).
 
+
+* calculate the raw sum of the individual items - motivation subscale score.
 COMPUTE calc_srs_raw_motvn = sum(srs_q_1a, srs_q_3a, srs_q_6a, srs_q_9a, srs_q_11a, srs_q_23a, srs_q_27a, srs_q_34a, srs_q_43a, srs_q_64a, srs_q_65a).
 VARIABLE LABELS calc_srs_raw_motvn "SRS raw (calculated) - motivation".
 FORMATS calc_srs_raw_motvn (F4.0).
 
+
+* calculate the raw sum of the individual items - mannerisms subscale score.
 COMPUTE calc_srs_raw_mannr = sum(srs_q_4a, srs_q_8a, srs_q_14a, srs_q_20a, srs_q_24a, srs_q_28a, srs_q_29a, srs_q_31a, srs_q_39a, srs_q_49a, srs_q_50a, srs_q_63a).
 VARIABLE LABELS calc_srs_raw_mannr "SRS raw (calculated) - mannerisms".
 FORMATS calc_srs_raw_mannr (F4.0).
 
+
+* calculate the raw sum of the subscale scores, as this score should be the same as the total raw score calculated above.
 COMPUTE calc_srs_raw_tot_subs = sum(calc_srs_raw_aware, calc_srs_raw_cogtn, calc_srs_raw_comm, calc_srs_raw_motvn, calc_srs_raw_mannr).
 VARIABLE LABELS calc_srs_raw_tot_subs "SRS raw (calculated) - total (subscales)".
 FORMATS calc_srs_raw_tot_subs (F4.0).
 
-* REDCap's output of the srs_raw_total variable is by default a string and nominal; here we make a temporary second variable that is numeric. 
-RECODE srs_raw_total (CONVERT) INTO evon_srs_raw_total.
-FORMATS evon_srs_raw_total (F5.0).
-VARIABLE LEVEL  evon_srs_raw_total (Scale).
 
-COMPUTE diff_evon_calc_srs = evon_srs_raw_total - calc_srs_raw_tot_indivs.
-VARIABLE LABELS diff_evon_calc_srs "difference between calculated raw SRS scores and Evon's scores".
-FORMATS diff_evon_calc_srs (F4.0).
+* REDCap's output of the srs_raw_total variable is by default a string and nominal; here we make a temporary second variable that is numeric. 
+RECODE srs_raw_total (CONVERT) INTO srs_raw_total_manual.
+FORMATS srs_raw_total_manual (F5.0).
+VARIABLE LEVEL  srs_raw_total_manual (Scale).
+
+
+* calculate the difference between the manual and the calculated raw scores -- this diference should be zero.
+COMPUTE diff_manual_calc_srs = srs_raw_total_manual - calc_srs_raw_tot_indivs.
+VARIABLE LABELS diff_manual_calc_srs "difference between calculated raw SRS scores and manual scores".
+FORMATS diff_manual_calc_srs (F4.0).
 
 EXECUTE.
 
 
-*** generate t-scores from raw scores ***.
+*** generate t-scores from raw scores, using the conversion tables available in the SRS manual***.
 ***************MALES***************.
+
+* make a new variable for male T scores.
 NUMERIC calc_srs_t_tot_male (F4.0).
+
+* look up the raw score and then recode it into the T score and save it in the new variable.
+* as an example: 	(33,34=50) means a raw score of 33 or 34 gets recoded into a T score of 50.
 RECODE calc_srs_raw_tot_indivs 
 	(0,1=34) 
 	(2,3=35)
@@ -241,6 +277,8 @@ RECODE calc_srs_raw_tot_indivs
 	INTO calc_srs_t_tot_male.
 EXECUTE.
 
+
+*** now calculate T scores for females ***.
 ***************FEMALES***************.
 NUMERIC calc_srs_t_tot_female (F4.0).
 RECODE calc_srs_raw_tot_indivs
@@ -355,18 +393,20 @@ RECODE calc_srs_raw_tot_indivs
 	INTO calc_srs_t_tot_female.
 EXECUTE.
 
+
+* now merge the calculated T score for males and females into a single unisex variable.
 NUMERIC srs_t_tot_calc (F4.0).
 VARIABLE LABELS srs_t_tot_calc "SRS T score (calculated) - total".
-
-
 IF (sex=1) srs_t_tot_calc=calc_srs_t_tot_male.
 IF (sex=2) srs_t_tot_calc=calc_srs_t_tot_female.
 EXECUTE.
 
+
+* cleanup a bit and delete some unused variables.
 DElETE VARIABLES calc_srs_t_tot_male calc_srs_t_tot_female.
 *DElETE VARIABLES srs_raw_total srs_raw_awareness srs_raw_cognition srs_raw_communication srs_raw_motivation srs_raw_mannerisms.
 DElETE VARIABLES calc_srs_raw_tot_indivs calc_srs_raw_aware calc_srs_raw_cogtn calc_srs_raw_comm calc_srs_raw_motvn calc_srs_raw_mannr calc_srs_raw_tot_subs.
-DElETE VARIABLES srs_t_total evon_srs_raw_total.
+DElETE VARIABLES srs_t_total srs_raw_total_manual.
 *DELETE VARIABLES srs_t_awareness srs_t_cognition srs_t_communication srs_t_motivation srs_t_mannerisms.
 DELETE VARIABLES srs_q_1a srs_q_2a srs_q_3a srs_q_4a srs_q_5a srs_q_6a srs_q_7a srs_q_8a srs_q_9a srs_q_10a
  srs_q_11a srs_q_12a srs_q_13a srs_q_14a srs_q_15a srs_q_16a srs_q_17a srs_q_18a srs_q_19a srs_q_20a
@@ -376,55 +416,45 @@ DELETE VARIABLES srs_q_1a srs_q_2a srs_q_3a srs_q_4a srs_q_5a srs_q_6a srs_q_7a 
  srs_q_51a srs_q_52a srs_q_53a srs_q_54a srs_q_55a srs_q_56a srs_q_57a srs_q_58a srs_q_59a srs_q_60a
  srs_q_61a srs_q_62a srs_q_63a srs_q_64a srs_q_65a.
 
+
+* sort SPSS cases by the difference between manual and calculated SRS scores -- the difference should be zero for all cases -- just a double-check here.
 SORT CASES BY
-  include_flag (A)
-  diff_evon_calc_srs (A).
+  diff_manual_calc_srs (A).
 
 
-
-
-
-
-
-*if SRS is marked for exclusion, then ensure the relevant variables that I will do stats on are set to null for that particular kid.
+*if SRS is marked for exclusion from analysis, then ensure the relevant variables that I will do stats on are set to null for that particular case.
 DO IF (include_flag_srs = 0).
-  COMPUTE srs_t_tot_evon = $SYSMIS.
+  COMPUTE srs_t_total_manual = $SYSMIS.
   COMPUTE srs_t_tot_calc = $SYSMIS.
 END IF.
 EXECUTE.
 
 
-
-
-
-
-
 **************************************************.
 **************************************************.
-*now check the calculated versus evon total T score.
+*now check the calculated versus manual total T score.
 **************************************************.
-NUMERIC srs_total_t_agree_evon_calc (F3.0).
-VARIABLE LABELS srs_total_t_agree_evon_calc "SRS total T score - agreement between calculated and evon".
-VALUE LABELS srs_total_t_agree_evon_calc 
+NUMERIC srs_total_t_agree_manual_calc (F3.0).
+VARIABLE LABELS srs_total_t_agree_manual_calc "SRS total T score - agreement between calculated and manual".
+VALUE LABELS srs_total_t_agree_manual_calc 
 	0 'do not agree'
 	1 'agree'.
-VARIABLE LEVEL srs_total_t_agree_evon_calc (NOMINAL).
+VARIABLE LEVEL srs_total_t_agree_manual_calc (NOMINAL).
 EXECUTE.
 
-DO IF (MISSING(srs_t_tot_evon) <> 1).
-  DO IF (srs_t_tot_evon = srs_t_tot_calc).
-    COMPUTE srs_total_t_agree_evon_calc=1.
-  ELSE IF (srs_t_tot_evon <> srs_t_tot_calc).
-    COMPUTE srs_total_t_agree_evon_calc=0.
+DO IF (MISSING(srs_t_total_manual) <> 1).
+  DO IF (srs_t_total_manual = srs_t_tot_calc).
+    COMPUTE srs_total_t_agree_manual_calc=1.
+  ELSE IF (srs_t_total_manual <> srs_t_tot_calc).
+    COMPUTE srs_total_t_agree_manual_calc=0.
   END IF.
 END IF.
 EXECUTE.
 
 EXECUTE.
 
-
 CROSSTABS
-  /TABLES=srs_total_t_agree_evon_calc BY study_group2
+  /TABLES=srs_total_t_agree_manual_calc BY study_group
   /FORMAT=AVALUE TABLES
   /CELLS=COUNT COLUMN
   /COUNT ROUND CELL.
@@ -432,17 +462,14 @@ CROSSTABS
 ***************************************************.
 
 
-
+* move some variables around in SPSS for easier viewing.
 VARIABLE ATTRIBUTE VARIABLES=
   srs_t_tot_calc
-  srs_t_tot_evon
-  diff_evon_calc_srs
+  srs_t_total_manual
+  diff_manual_calc_srs
   num_missing_srs
-  srs_total_t_agree_evon_calc
+  srs_total_t_agree_manual_calc
   ATTRIBUTE=origsort ('0013').
-
-
 SORT VARIABLES BY ATTRIBUTE origsort (A).
-
 
 EXECUTE.
